@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hypertension Screening Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fa;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            background-color: #fff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        header {
+            background-color: #4A90E2;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .form-container,
+        .results-container {
+            margin: 10px 0;
+        }
+
+        .form-container {
+            background: #f0f4f8;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .form-container h2 {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            font-size: 16px;
+        }
+
+        select {
+            width: 200px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .results-container h2 {
+            margin-bottom: 15px;
+        }
+
+        #patientTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        #patientTable th,
+        #patientTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        #patientTable tr.secondary-hypertension {
+            background-color: #ffdddd;
+        }
+
+        #patientTable tr.primary-hypertension {
+            background-color: #ddffdd;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .legend-secondary {
+            background-color: #ffdddd;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .legend-primary {
+            background-color: #ddffdd;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .statistics {
+            padding: 10px;
+            background: #e9f5ff;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        #secondaryHypertensionPercentage {
+            font-size: 24px;
+            color: #E74C3C;
+            margin: 0;
+        }
+
+        .results-overview {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #ageHistogram {
+            width: 100%;
+            max-height: 400px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+
+        #maleBarChart, #countryBarChart {
+            height: 300px;
+            max-height: 300px;
+        }
+      
+      .table-container {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+/* Styles for the download button */
+.download-btn {
+    background-color: #4A90E2;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.download-btn:hover {
+    background-color: #357ABD;
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DNeSH</h1>
+            <p>Diagnostic Network for Secondary Hypertension</p>
+            <p>Demo Version</p>
+          <p><a href="mailto:andrefrsilva@edu.ulisboa.pt">Contact Us</a></p>
+        </header>
+        <main>
+            <div class="form-container">
+                <h2>Participant Data</h2>
+                <form id="patientForm">
+                    <label>
+                        <span>Country</span>
+                        <select id="countryFilter">
+                            <option value="All">All</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Primary Cause</span>
+                        <select id="primaryCauseFilter">
+                            <option value="All">All</option>
+                        </select>
+                    </label>
+
+                    <!-- Binary filters -->
+                    <!-- Include all the filters specified -->
+                    <label><span>Male</span>
+                        <select name="Male" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Continue with all other filters -->
+                    <!-- <30 years old onset -->
+                    <label><span>&lt;30 years old onset</span>
+                        <select name="<30 years old onset" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- >65 years old onset -->
+                    <label><span>&gt;65 years old onset</span>
+                        <select name=">65 years old onset" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Abrupt Onset -->
+                    <label><span>Abrupt Onset</span>
+                        <select name="Abrupt Onset" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Treatment Resistant -->
+                    <label><span>Treatment Resistant</span>
+                        <select name="Treatment Resistant" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Therapeutic Adherence -->
+                    <label><span>Therapeutic Adherence</span>
+                        <select name="Therapeutic Adherence" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Left-Right Arm Diff >10 -->
+                    <label><span>Left-Right Arm Diff &gt;10</span>
+                        <select name="Left-Right Arm Diff >10" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Arm-Leg Diff -->
+                    <label><span>Arm-Leg Diff</span>
+                        <select name="Arm-Leg Diff" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Dyslipidemia -->
+                    <label><span>Dyslipidemia</span>
+                        <select name="Dyslipidemia" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Diabetes -->
+                    <label><span>Diabetes</span>
+                        <select name="Diabetes" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Stroke -->
+                    <label><span>Stroke</span>
+                        <select name="Stroke" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Myocardial Infarction -->
+                    <label><span>Myocardial Infarction</span>
+                        <select name="Myocardial Infarction" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Smokes or Smoked -->
+                    <label><span>Smokes or Smoked</span>
+                        <select name="Smokes or Smoked" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Hypokalemia -->
+                    <label><span>Hypokalemia</span>
+                        <select name="Hypokalemia" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Sleep Apnea -->
+                    <label><span>Sleep Apnea</span>
+                        <select name="Sleep Apnea" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Family History of PHT -->
+                    <label><span>Family History of PHT</span>
+                        <select name="Family History of PHT" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Family History of SHT -->
+                    <label><span>Family History of SHT</span>
+                        <select name="Family History of SHT" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Obesity -->
+                    <label><span>Obesity</span>
+                        <select name="Obesity" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- High Cortisol -->
+                    <label><span>High Cortisol</span>
+                        <select name="High Cortisol" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Pulmonary Edema -->
+                    <label><span>Pulmonary Edema</span>
+                        <select name="Pulmonary Edema" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Abdominal bruit -->
+                    <label><span>Abdominal bruit</span>
+                        <select name="Abdominal bruit" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- High Serum Creatinine -->
+                    <label><span>High Serum Creatinine</span>
+                        <select name="High Serum Creatinine" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Hematuria -->
+                    <label><span>Hematuria</span>
+                        <select name="Hematuria" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Proteinuria -->
+                    <label><span>Proteinuria</span>
+                        <select name="Proteinuria" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Family History of Polycystic Kidney Disease -->
+                    <label><span>Family History of Polycystic Kidney Disease</span>
+                        <select name="Family History of Polycystic Kidney Disease" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Cramps -->
+                    <label><span>Cramps</span>
+                        <select name="Cramps" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Headaches -->
+                    <label><span>Headaches</span>
+                        <select name="Headaches" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Sweating -->
+                    <label><span>Sweating</span>
+                        <select name="Sweating" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Palpitations -->
+                    <label><span>Palpitations</span>
+                        <select name="Palpitations" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Tinnitus -->
+                    <label><span>Tinnitus</span>
+                        <select name="Tinnitus" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Atrial Fibrillation -->
+                    <label><span>Atrial Fibrillation</span>
+                        <select name="Atrial Fibrillation" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- High Aldosterone/Renin Ratio -->
+                    <label><span>High Aldosterone/Renin Ratio</span>
+                        <select name="High Aldosterone/Renin Ratio" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- NSAIDs -->
+                    <label><span>NSAIDs</span>
+                        <select name="NSAIDs" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Oral Contraceptives -->
+                    <label><span>Oral Contraceptives</span>
+                        <select name="Oral Contraceptives" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Steroids -->
+                    <label><span>Steroids</span>
+                        <select name="Steroids" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Sympathomimetic Agents -->
+                    <label><span>Sympathomimetic Agents</span>
+                        <select name="Sympathomimetic Agents" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Caffeine -->
+                    <label><span>Caffeine</span>
+                        <select name="Caffeine" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                    <!-- Nicotine -->
+                    <label><span>Nicotine</span>
+                        <select name="Nicotine" class="binary-select">
+                            <option value="All">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </label>
+                </form>
+            </div>
+
+            <!-- Section for participant count and gender distribution -->
+            <div class="results-overview">
+                <h2>Filtered Participants <span id="participantCount"></span></h2>
+                <canvas id="ageHistogram" style="width: 100%; height: 400px;"></canvas>
+            </div>
+
+            <div class="results-container">
+                <!-- Replace the hypertension diagnosed section with the new table -->
+                <center><h2>Distribution of Primary Causes</h2></center>
+                <table id="primaryCauseTable" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                    <thead>
+                        <tr>
+                            <th>Diagnostic</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <br>
+                <canvas id="maleBarChart" style="width: 100%; height: 300px;"></canvas>
+                <canvas id="countryBarChart" style="width: 100%; height: 300px;"></canvas>
+                <br>
+                <div class="statistics">
+                    <h3>Percentage with Secondary Hypertension:</h3>
+                    <p id="secondaryHypertensionPercentage">0%</p>
+                </div>
+                <br>
+                <!-- Remove the combined bar plot as per point 9 -->
+                <!-- Odds Ratio Table -->
+                <center><h2>Factors Associated with Secondary Hypertension</h2></center>
+                <table id="oddsRatioTable" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Odds Ratio</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+              
+              <br><br><br>
+                              <!-- Add download button above the table -->
+<button id="downloadButton" class="download-btn">
+    <i class="fas fa-download"></i> Download Original Data
+</button>
+              
+                <br><br><br>
+                <div class="legend">
+                    <span class="legend-secondary">Secondary Hypertension</span>
+                    <span class="legend-primary">Primary Hypertension</span>
+                </div>
+
+<!-- Wrap the table inside a scrollable div -->
+<div class="table-container">
+    <table id="patientTable">
+        <thead>
+            <tr>
+                <!-- Include Age and all filter columns -->
+                <th>Age</th>
+                <th>Country</th>
+                <th>Primary Cause</th>
+                <th>Male</th>
+                <th>&lt;30 years old onset</th>
+                <th>&gt;65 years old onset</th>
+                <th>Abrupt Onset</th>
+                <th>Treatment Resistant</th>
+                <th>Therapeutic Adherence</th>
+                <th>Left-Right Arm Diff &gt;10</th>
+                <th>Arm-Leg Diff</th>
+                <th>Dyslipidemia</th>
+                <th>Diabetes</th>
+                <th>Stroke</th>
+                <th>Myocardial Infarction</th>
+                <th>Smokes or Smoked</th>
+                <th>Hypokalemia</th>
+                <th>Sleep Apnea</th>
+                <th>Family History of PHT</th>
+                <th>Family History of SHT</th>
+                <th>Obesity</th>
+                <th>High Cortisol</th>
+                <th>Pulmonary Edema</th>
+                <th>Abdominal bruit</th>
+                <th>High Serum Creatinine</th>
+                <th>Hematuria</th>
+                <th>Proteinuria</th>
+                <th>Family History of Polycystic Kidney Disease</th>
+                <th>Cramps</th>
+                <th>Headaches</th>
+                <th>Sweating</th>
+                <th>Palpitations</th>
+                <th>Tinnitus</th>
+                <th>Atrial Fibrillation</th>
+                <th>High Aldosterone/Renin Ratio</th>
+                <th>NSAIDs</th>
+                <th>Oral Contraceptives</th>
+                <th>Steroids</th>
+                <th>Sympathomimetic Agents</th>
+                <th>Caffeine</th>
+                <th>Nicotine</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+
+            </div>
+        </main>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Load Excel file and initialize filters
+        const excelUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpHz_MgeygnnVAYUTlnq2wQJp8Owg1vurrWw1kmz3Up4kJK0KXWy4LKmml5jBj2XvwlKAB0ItSFFfr/pub?output=xlsx';
+        let patientData = [];
+        let ageHistogramChart;
+        let maleBarChart, countryBarChart;
+        let variablesList = [
+            'Male',
+            '<30 years old onset',
+            '>65 years old onset',
+            'Abrupt Onset',
+            'Treatment Resistant',
+            'Therapeutic Adherence',
+            'Left-Right Arm Diff >10',
+            'Arm-Leg Diff',
+            'Dyslipidemia',
+            'Diabetes',
+            'Stroke',
+            'Myocardial Infarction',
+            'Smokes or Smoked',
+            'Hypokalemia',
+            'Sleep Apnea',
+            'Family History of PHT',
+            'Family History of SHT',
+            'Obesity',
+            'High Cortisol',
+            'Pulmonary Edema',
+            'Abdominal bruit',
+            'High Serum Creatinine',
+            'Hematuria',
+            'Proteinuria',
+            'Family History of Polycystic Kidney Disease',
+            'Cramps',
+            'Headaches',
+            'Sweating',
+            'Palpitations',
+            'Tinnitus',
+            'Atrial Fibrillation',
+            'High Aldosterone/Renin Ratio',
+            'NSAIDs',
+            'Oral Contraceptives',
+            'Steroids',
+            'Sympathomimetic Agents',
+            'Caffeine',
+            'Nicotine'
+        ];
+
+        async function loadExcelData() {
+            const response = await fetch(excelUrl);
+            const data = await response.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            patientData = XLSX.utils.sheet_to_json(firstSheet);
+
+            populateFilters();
+            updateResults();
+        }
+
+        // Populate dropdown filters with unique values
+        function populateFilters() {
+            populateDropdown('Country', 'countryFilter');
+            populateDropdown('Primary Cause', 'primaryCauseFilter');
+        }
+
+        // Populate a dropdown with unique values from a column, filtering out empty or space-only values
+        function populateDropdown(column, dropdownId) {
+            const values = [...new Set(patientData.map(item => item[column]?.toString().trim()))]
+                .filter(value => value && value.trim() !== ''); // Remove empty or space-only values
+            const dropdown = document.getElementById(dropdownId);
+            values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                dropdown.appendChild(option);
+            });
+        }
+
+        // Helper function to parse and clean the value
+        function getValue(patient, key) {
+            let value = patient[key];
+            if (typeof value === 'string') {
+                value = value.trim().toLowerCase();
+                if (value === 'yes') return 1;
+                if (value === 'no') return 0;
+            }
+            return parseFloat(value) || 0; // Convert to a number, defaulting to 0 if not a valid number
+        }
+
+        // Update the participant count and male distribution
+        function updateParticipantCount(filteredPatients) {
+            const total = filteredPatients.length;
+            const maleCount = filteredPatients.filter(p => getValue(p, 'Male') === 1).length;
+            const femaleCount = total - maleCount;
+            document.getElementById('participantCount').textContent = `(${total}: ${maleCount} males and ${femaleCount} females)`;
+        }
+
+        function createAgeHistogram(filteredPatients) {
+            // Create bins for 10-year intervals
+            const ageBins = Array.from({ length: 10 }, (_, i) => ({
+                label: `${i * 10}-${i * 10 + 9}`,
+                count: 0
+            }));
+
+            // Populate the age bins with data
+            filteredPatients.forEach(p => {
+                const age = getValue(p, 'Age');
+                const binIndex = Math.floor(age / 10);
+                if (binIndex >= 0 && binIndex < ageBins.length) {
+                    ageBins[binIndex].count++;
+                }
+            });
+
+            // Prepare data for the chart
+            const labels = ageBins.map(bin => bin.label);
+            const data = ageBins.map(bin => bin.count);
+
+            // If the chart already exists, destroy it before creating a new one
+            if (ageHistogramChart) {
+                ageHistogramChart.destroy();
+            }
+
+            const ctx = document.getElementById('ageHistogram').getContext('2d');
+            ageHistogramChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Participant Ages',
+                        data: data,
+                        backgroundColor: '#4A90E2',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Age Distribution'
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Age' } },
+                        y: { title: { display: true, text: 'Number of Participants' } }
+                    }
+                }
+            });
+        }
+
+        // Function to create a bar chart for the number of participants by Male
+        function createMaleBarChart(filteredPatients) {
+            const maleCounts = filteredPatients.reduce((acc, patient) => {
+                const maleValue = getValue(patient, 'Male');
+                const key = maleValue === 1 ? 'Male' : 'Female';
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {});
+
+            const labels = Object.keys(maleCounts);
+            const data = Object.values(maleCounts);
+
+            if (maleBarChart) {
+                maleBarChart.destroy();
+            }
+
+            const ctx = document.getElementById('maleBarChart').getContext('2d');
+    maleBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Number of Participants by Sex',
+                data: data,
+                backgroundColor: ['#4A90E2', '#FF00FF'],
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: 'Number of Participants by Sex'
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Sex' } },
+                y: {
+                    title: { display: true, text: 'Number of Participants' },
+                    ticks: {
+                        beginAtZero: true,
+                        stepSize: 1,
+                        callback: function(value) {
+                            if (Number.isInteger(value)) {
+                                return value;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+        // Function to create a bar chart for the number of participants by Country
+        function createCountryBarChart(filteredPatients) {
+            const countryCounts = filteredPatients.reduce((acc, patient) => {
+                const country = patient['Country'] || 'Unknown';
+                acc[country] = (acc[country] || 0) + 1;
+                return acc;
+            }, {});
+
+            const labels = Object.keys(countryCounts);
+            const data = Object.values(countryCounts);
+
+            if (countryBarChart) {
+                countryBarChart.destroy();
+            }
+
+            const ctx = document.getElementById('countryBarChart').getContext('2d');
+            countryBarChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Number of Participants by Country',
+                        data: data,
+                        backgroundColor: '#3498DB',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Number of Participants by Country'
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Country' } },
+                        y: { title: { display: true, text: 'Number of Participants' } }
+                    }
+                }
+            });
+        }
+
+        // Function to calculate and display the distribution of Primary Causes
+        function updatePrimaryCauseTable(filteredPatients) {
+            const causeCounts = filteredPatients.reduce((acc, patient) => {
+                const cause = patient['Primary Cause'] || 'Unknown';
+                acc[cause] = (acc[cause] || 0) + 1;
+                return acc;
+            }, {});
+
+            const total = filteredPatients.length;
+            const causePercentages = Object.entries(causeCounts).map(([cause, count]) => ({
+                cause,
+                percentage: ((count / total) * 100).toFixed(1)
+            }));
+
+            // Sort from biggest to smallest
+            causePercentages.sort((a, b) => b.percentage - a.percentage);
+
+            const primaryCauseTableBody = document.querySelector('#primaryCauseTable tbody');
+            primaryCauseTableBody.innerHTML = causePercentages.map(item => {
+                const color = getColorForPercentage(item.percentage);
+                return `
+                    <tr>
+                        <td style="text-align: center;">${item.cause}</td>
+                        <td style="background-color: ${color}; text-align: center;">${item.percentage}%</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Color coding function for percentages
+        function getColorForPercentage(value) {
+            const percentage = parseFloat(value);
+            const ratioPercent = Math.min(percentage / 100, 1);
+
+            const red = 255;
+            const green = Math.floor(255 * (1 - ratioPercent));
+
+            return `rgb(${red}, ${green}, 0)`;
+        }
+
+        // Function to calculate odds ratio between each variable and the outcome "Secondary Hypertension"
+        function calculateOddsRatio(filteredPatients) {
+            // Function to calculate odds ratio
+            function computeOddsRatio(a, b, c, d) {
+                if (b === 0 || c === 0) return 'N/A';
+                return (a / b) / (c / d);
+            }
+
+            // Calculate odds ratio for each variable
+            const oddsRatios = variablesList.map(variable => {
+                let a = 0, b = 0, c = 0, d = 0;
+
+                filteredPatients.forEach(patient => {
+                    const outcome = getValue(patient, 'Secondary Hypertension');
+                    const exposure = getValue(patient, variable);
+
+                    if (exposure && outcome) a++;
+                    else if (exposure && !outcome) b++;
+                    else if (!exposure && outcome) c++;
+                    else d++;
+                });
+
+                const oddsRatio = computeOddsRatio(a, b, c, d);
+                return { name: variable, value: isFinite(oddsRatio) ? oddsRatio.toFixed(1) : 'N/A' };
+            });
+
+            // Sort the odds ratios by value in descending order and filter out "N/A"
+            const validOddsRatios = oddsRatios
+                .filter(or => or.value !== 'N/A')
+                .sort((a, b) => parseFloat(b.value) - parseFloat(a.value));
+
+            const oddsRatioTableBody = document.querySelector('#oddsRatioTable tbody');
+            oddsRatioTableBody.innerHTML = validOddsRatios.map(or => {
+                const color = getColorForOddsRatio(or.value);
+                return `
+                    <tr>
+                        <td style="text-align: center;">${or.name}</td>
+                        <td style="background-color: ${color}; text-align: center;">${or.value}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Color coding function for odds ratios
+        function getColorForOddsRatio(value) {
+            if (value === 'N/A') return '#ffffff'; // No color for N/A values
+            const ratio = parseFloat(value);
+            const minRatio = 1;
+            const maxRatio = 6;
+
+            const ratioPercent = Math.min((ratio - minRatio) / (maxRatio - minRatio), 1);
+
+            const red = 255;
+            const green = Math.floor(255 * (1 - ratioPercent));
+
+            return `rgb(${red}, ${green}, 0)`;
+        }
+
+    function updateResults() {
+        const countryFilter = document.getElementById('countryFilter').value;
+        const primaryCauseFilter = document.getElementById('primaryCauseFilter').value;
+        const binaryFilters = {};
+
+        variablesList.forEach(variable => {
+            const value = document.querySelector(`select[name="${variable}"]`).value;
+            binaryFilters[variable] = value;
+        });
+
+        // Filter patient data based on dropdowns and binary filters
+        const filteredPatients = patientData.filter(patient => {
+            const countryMatch = (countryFilter === 'All' || patient['Country'] === countryFilter);
+            const causeMatch = (primaryCauseFilter === 'All' || patient['Primary Cause'] === primaryCauseFilter);
+
+            const binaryMatch = Object.entries(binaryFilters).every(([key, value]) => {
+                const patientValue = getValue(patient, key);
+                if (value === 'All') return true;  // No filtering
+                if (value === '1') return patientValue === 1;
+                if (value === '0') return patientValue === 0;
+                return false;  // Default return false for safety
+            });
+
+            return countryMatch && causeMatch && binaryMatch;
+        });
+
+        // Update participant count and create charts
+        updateParticipantCount(filteredPatients);
+        createAgeHistogram(filteredPatients);
+        createMaleBarChart(filteredPatients);
+        createCountryBarChart(filteredPatients);
+        updatePrimaryCauseTable(filteredPatients);
+        calculateOddsRatio(filteredPatients);
+
+        // Calculate percentage of Secondary Hypertension cases
+        const secondaryCount = filteredPatients.filter(p => getValue(p, 'Secondary Hypertension') === 1).length;
+        const percentage = filteredPatients.length ? (secondaryCount / filteredPatients.length) * 100 : 0;
+        document.getElementById('secondaryHypertensionPercentage').textContent = `${percentage.toFixed(1)}%`;
+
+        // Sort and display the filtered data
+        filteredPatients.sort((a, b) => getValue(b, 'Secondary Hypertension') - getValue(a, 'Secondary Hypertension'));
+        const patientTableBody = document.querySelector('#patientTable tbody');
+        patientTableBody.innerHTML = filteredPatients.map(patient => {
+            const rowClass = getValue(patient, 'Secondary Hypertension') === 1 ? 'secondary-hypertension' : 'primary-hypertension';
+            const rowCells = ['Age', 'Country', 'Primary Cause', 'Male', ...variablesList.slice(1)].map(key => `<td>${patient[key] || ''}</td>`).join('');
+            return `<tr class="${rowClass}">${rowCells}</tr>`;
+        }).join('');
+    }
+
+    // Load the Excel data on page load
+    window.onload = loadExcelData;
+
+    // Add event listeners to filters
+    document.querySelectorAll('.binary-select').forEach(select => {
+        select.addEventListener('change', updateResults);
+    });
+    document.getElementById('countryFilter').addEventListener('change', updateResults);
+    document.getElementById('primaryCauseFilter').addEventListener('change', updateResults);
+
+      // Add event listener for the download button
+document.getElementById('downloadButton').addEventListener('click', function() {
+    window.open(excelUrl, '_blank');
+});
+
+      
+</script>
+</body>
