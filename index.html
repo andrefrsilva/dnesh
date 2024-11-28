@@ -11,6 +11,11 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="viewport" content="width=device-width, initial-scale=1"
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+        <script src="https://visjs.github.io/vis-network/standalone/umd/vis-network.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+      
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -174,6 +179,153 @@
     background-color: #357ABD;
 }
 
+            /* Ensure IDs are unique */
+  .toggleFullscreen {
+    /* Add any styles if necessary */
+  }
+
+  @media print {
+    body {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  }
+  
+  .group-toggle-container {
+    margin-bottom: 10px;
+  }
+  .group-toggle {
+    cursor: pointer;
+    padding: 5px 10px;
+    margin: 5px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 3px;
+  }
+  .group-toggle.off {
+    background-color: #ccc;
+    color: #666;
+  }    
+  .deleteButton { cursor: pointer; padding: 5px 10px; margin: 5px; background-color: #f44336; color: white; border: none; border-radius: 3px; }
+  .deleteButton:hover { background-color: #cc0000; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+  th { background-color: #f2f2f2; }
+  .button { cursor: pointer; padding: 5px 10px; margin: 5px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; }
+  .button:hover { background-color: #45a049; }
+  #resetButton { background-color: #f44336; }
+  #resetButton:hover { background-color: #cc0000; }
+  .copyButton { padding: 4px 8px; }
+  #degreeChart, #clusteringChart {
+    display: none;
+    height: 400px;
+  }
+  .vis-tooltip {
+    z-index: 10000 !important;
+  }
+  #mynetwork {
+    width: 60%;
+    height: 600px;
+    border: 1px solid lightgray;
+    background-color: white;
+    position: relative;
+    page-break-inside: avoid; /* Ensure the network graph doesn't break */
+  }
+
+  #watermark {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    color: gray;
+    opacity: 0.5; /* Adjust transparency */
+    font-size: 12px;
+    z-index: 1000; /* Ensure it stays on top */
+  }
+  #watermark a {
+    color: gray; /* Match the text color of the watermark */
+    text-decoration: none; /* No underline for the link */
+  }
+
+  @property --_l {
+    syntax: "<length>";
+    initial-value: 0px;
+    inherits: true;
+  }
+  @property --_r {
+    syntax: "<length>";
+    initial-value: 0px;
+    inherits: true;
+  }
+
+  .container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* Horizontal spacing between boxes */
+    justify-content: center;
+    margin-bottom: 40px; /* Vertical spacing between rows on larger screens */
+  }
+
+  .drug-box {
+    --d: 18px;  /* the depth */
+    --a: 20deg; /* the angle */
+    --x: 10px;  /* lateral width */
+
+    width: 300px; /* Width for the frontal face */
+    aspect-ratio: 2.2;
+    object-fit: cover;
+    padding-block: var(--d);
+    transform: perspective(600px) rotateY(calc(var(--_i, 1) * var(--a)));
+    outline: var(--d) solid #0008;
+    outline-offset: calc(-1 * var(--d));
+    --_d: calc(100% - var(--d));
+    --_l: 0px;
+    --_r: 0px;
+    clip-path: polygon(
+      var(--_l) calc(var(--_d) - var(--x)),
+      var(--_l) calc(var(--d) + var(--x)), 
+      var(--d) var(--d), var(--_d) var(--d),
+      calc(var(--_d) + var(--_r)) calc(var(--d) + var(--x)),
+      calc(var(--_d) + var(--_r)) calc(var(--_d) - var(--x)),  
+      var(--_d) var(--_d), var(--d) var(--_d)
+    );
+    transition: transform .3s, --_r .15s, --_l .15s .15s;
+    transition-timing-function: linear;
+    cursor: pointer;
+    display: block;
+    max-width: 100%;
+  }
+
+  .drug-box:hover,
+  .drug-box.alt {
+    --_l: var(--d);
+    --_r: var(--d);
+    --_i: -1;
+    transition-delay: 0s, .15s, 0s;
+  }
+
+  /* Information section styles */
+  .info-sections {
+    display: block; /* Ensure this container is visible */
+    margin-top: 20px;
+  }
+
+  .info-section {
+    display: none;
+    padding: 20px;
+    border: 1px solid #ccc;
+    margin-bottom: 20px;
+    background-color: #f9f9f9;
+  }
+
+  /* Responsive vertical spacing for larger screens */
+  @media (min-width: 1024px) {
+    .container {
+      row-gap: 40px; /* Increased vertical gap for large screens */
+    }
+  }
+
     </style>
 </head>
 <body>
@@ -186,6 +338,80 @@
           <p><a href="mailto:andrefrsilva@edu.ulisboa.pt">Contact Us</a></p>
         </header>
         <main>
+
+              <div class="container">
+  <img class="drug-box" src="https://i.postimg.cc/XYyhSsVh/masterplan.png" alt="Drug box" data-id="1">
+  <img class="drug-box" src="https://i.postimg.cc/XvSPV9qv/HYPERTENSION.png" alt="Drug box" data-id="2">
+</div>
+
+<div id="mynetwork" style="display: none;"></div>
+  
+<div class="info-sections">
+  <div id="section-1" class="info-section">
+    <h1>DNeSH Masterplan</h1>
+    
+    <!-- Changed id to class -->
+    <br /><br /><button class="toggleFullscreen">Fullscreen</button> 
+
+    <br /><br />
+    <input type="checkbox" id="physicsCheck" checked> Physics<br><br>
+
+    <label>
+      <input type="checkbox" id="seeAllDescendantsCheckbox" name="seeAllDescendants">
+      See all affected Nodes when selecting One
+    </label>
+    <br><br>
+
+    <label>
+      <input type="checkbox" id="curvedEdgesCheckbox"> Curved Edges
+    </label>
+    
+    <br>
+    <p>Groups:</p>
+    <div id="groupToggles"></div>
+
+    <!-- Additional elements (hidden) -->
+    <!-- ... -->
+
+  </div>
+  <div id="section-2" class="info-section">
+    <h1>Foundational Hypertension Network</h1>
+    
+    <!-- Changed id to class -->
+    <br /><br /><button class="toggleFullscreen">Fullscreen</button> 
+
+    <br /><br />
+    <input type="checkbox" id="physicsCheck" checked> Physics<br><br>
+
+    <label>
+      <input type="checkbox" id="seeAllDescendantsCheckbox" name="seeAllDescendants">
+      See all affected Nodes when selecting One
+    </label>
+    <br><br>
+
+    <label>
+      <input type="checkbox" id="curvedEdgesCheckbox"> Curved Edges
+    </label>
+    
+    <br>
+    <p>Groups:</p>
+    <div id="groupToggles"></div>
+
+    <!-- Additional elements (hidden) -->
+    <!-- ... -->
+
+  </div>
+</div>
+
+<!-- Hidden buttons -->
+<button id="loadDataButton1" style="display:none;">Load Data 1</button>
+<button id="loadDataButton2" style="display:none;">Load Data 2</button>
+<button id="loadDataButton3" style="display:none;">Load Data 3</button>
+<button id="loadDataButton4" style="display:none;">Load Data 4</button>
+<button id="loadDataButton5" style="display:none;">Load Data 5</button>
+
+
+              
             <div class="form-container">
                 <h2>Participant Data</h2>
                 <form id="patientForm">
@@ -1032,6 +1258,459 @@ document.getElementById('downloadButton').addEventListener('click', function() {
     window.open(excelUrl, '_blank');
 });
 
+
+           // Initialize global variables
+  var nodes = new vis.DataSet([]);
+  var edges = new vis.DataSet([]);
+  var network = null;
+  var options = null;
+
+  const boxes = document.querySelectorAll('.drug-box');
+  const sections = document.querySelectorAll('.info-section');  
+  const networkContainer = document.getElementById('mynetwork');
+
+  // Smooth scroll function
+  function smoothScroll(target, duration) {
+    const targetPosition = target.getBoundingClientRect().top + window.pageYOffset;
+    const startPosition = window.pageYOffset;
+    const distance = targetPosition - startPosition;
+    let startTime = null;
+
+    function animation(currentTime) {
+      if (startTime === null) startTime = currentTime;
+      const timeElapsed = currentTime - startTime;
+      const run = easeInOut(timeElapsed, startPosition, distance, duration);
+      window.scrollTo(0, run);
+      if (timeElapsed < duration) requestAnimationFrame(animation);
+    }
+
+    function easeInOut(t, b, c, d) {
+      t /= d / 2;
+      if (t < 1) return c / 2 * t * t + b;
+      t--;
+      return -c / 2 * (t * (t - 2) - 1) + b;
+    }
+
+    requestAnimationFrame(animation);
+  }
+
+  // Define the Excel URLs
+  const excelURLs = [
+    null, // Index 0 placeholder
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vRvjYpSElYA_V-uhjJ6Xy0Oh7YWtrxPQfnWhRBd2xVvT1l1CKjiKxD-o23XHovZEu9BB7iPOiKrtAnj/pub?output=xlsx',
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vRupeTiNilcBPCjsmw3djxoTbo0rsOLtYol6OP5vNfa7rzCHBy8Iuta-He54gGAugjsABhVMb_6SUeg/pub?output=xlsx'
+  ];
+
+  document.addEventListener("DOMContentLoaded", function() {
+    // Initialize the network
+    var container = document.getElementById("mynetwork");
+    var data = {
+      nodes: nodes,
+      edges: edges,
+    };
+    options = {
+      layout: { randomSeed: 2 },
+      physics: {
+        enabled: true,
+        solver: "barnesHut",
+        barnesHut: {
+          gravitationalConstant: -8000,
+          springLength: 10,
+          centralGravity: 0.01,
+        },
+        maxVelocity: 135,
+        timestep: 0.35,
+        stabilization: {
+          enabled: true,
+          iterations: 600,
+          updateInterval: 10,
+          onlyDynamicEdges: false,
+          fit: true
+        }
+      },
+      nodes: {
+        shape: "dot",
+        scaling: {
+          customScalingFunction: function (min, max, total, value) {
+            return value / total;
+          },
+          min: 5,
+          max: 50,
+        },
+      },
+      edges: {
+        color: {
+          inherit: false,
+        },
+        scaling: {
+          min: 0.5,
+          max: 3,
+        },
+        smooth: {
+          enabled: false,
+          type: 'dynamic',
+        },
+      },
+    };
+    network = new vis.Network(container, data, options);
+
+    boxes.forEach(box => {
+      box.addEventListener('click', () => {
+        const id = box.getAttribute('data-id');
+        const section = document.getElementById(`section-${id}`);
+
+        if (section.style.display === 'block') {
+          // Section is open, close it
+          section.style.display = 'none';
+
+          // Optionally hide the network container
+          // networkContainer.style.display = 'none';
+        } else {
+          // Section is closed, open it
+
+          // Close all other sections
+          sections.forEach(sec => {
+            if (sec !== section) {
+              sec.style.display = 'none';
+            }
+          });
+
+          section.style.display = 'block';
+
+          // Move the network container into the current section, after the main title
+          const h1 = section.querySelector('h1');
+          if (h1) {
+            h1.insertAdjacentElement('afterend', networkContainer);
+          } else {
+            section.insertAdjacentElement('afterbegin', networkContainer);
+          }
+
+          // Ensure the network container is visible
+          networkContainer.style.display = 'block';
+
+          // Smooth scroll to the section
+          smoothScroll(section, 1300);
+
+          // Load the data for this section
+          loadDataForSection(id);
+        }
+      });
+    });
+
+    // Event listener for physics checkbox
+    document.getElementById("physicsCheck").addEventListener("change", function() {
+      options.physics.enabled = this.checked; // Toggle physics
+      network.setOptions(options); // Update network options
+      network.redraw(); // Redraw network
+    });
+
+    // Event listener for curved edges
+    document.getElementById("curvedEdgesCheckbox").addEventListener("change", function () {
+      options.edges.smooth.enabled = this.checked;
+      network.setOptions(options);
+      network.redraw();
+    });
+
+    // Add the watermark
+    var watermark = document.createElement('div');
+    watermark.id = 'watermark';
+    watermark.innerHTML = `<a href="https://www.linkedin.com/in/andrefrsilva/" target="_blank">DNeSH © ${new Date().getFullYear()}</a>`;
+    networkContainer.appendChild(watermark);
+
+    // Add event handlers for node selection
+    network.on('selectNode', function (properties) {
+      let seeAllDescendants = document.getElementById('seeAllDescendantsCheckbox').checked;
+      let nodesToUpdate = [];
+      let allNodes = nodes.get(); // Get all nodes
+
+      allNodes.forEach(node => {
+        if (properties.nodes.includes(node.id)) {
+          nodesToUpdate.push({ id: node.id, hidden: false, color: node.originalColor });
+        } else {
+          nodesToUpdate.push({ id: node.id, hidden: true });
+        }
+      });
+
+      const addChildNodes = (nodeId, nodesMap, recursive = true) => {
+        let connectedEdges = edges.get({
+          filter: function (edge) {
+            return edge.from === nodeId;
+          }
+        });
+
+        connectedEdges.forEach((edge) => {
+          let childId = edge.to;
+          let childNode = nodesMap.find(node => node.id === childId);
+          if (childNode && childNode.hidden) {
+            childNode.hidden = false;
+            childNode.color = nodes.get(childId).originalColor;
+            if (recursive) {
+              addChildNodes(childId, nodesMap, seeAllDescendants); // Use the checkbox value
+            }
+          }
+        });
+      };
+
+      // Apply recursion based on user preference
+      properties.nodes.forEach(nodeId => {
+        addChildNodes(nodeId, nodesToUpdate, seeAllDescendants);
+      });
+
+      nodes.update(nodesToUpdate);
+    });
+
+    network.on('deselectNode', function (properties) {
+      let nodesToUpdate = [];
+      let allNodes = nodes.get(); // Get all nodes
+
+      allNodes.forEach(node => {
+        if (node.hidden) {
+          // Make the node visible and restore its original color
+          nodesToUpdate.push({ id: node.id, hidden: false, color: node.originalColor });
+        } else {
+          // Ensure visible nodes have their original color
+          nodesToUpdate.push({ id: node.id, color: node.originalColor });
+        }
+      });
+
+      nodes.update(nodesToUpdate);
+    });
+  });
+
+  function loadDataForSection(id) {
+    const url = excelURLs[id];
+    if (url) {
+      loadDataFromGivenURL(url);
+    } else {
+      console.error('No data URL defined for section', id);
+    }
+  }
+
+  async function loadDataFromGivenURL(url) {
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const blob = await response.blob();
+      processExcel(blob); // Process the Excel file
+    } catch (error) {
+      console.error("Error loading the Excel file:", error);
+    }
+  }
+
+  function processExcel(blob) {
+    nodes.clear(); // Clear existing nodes
+    edges.clear(); // Clear existing edges
+    groupFilters = {}; // Reset group filters
+
+    var reader = new FileReader();
+
+    reader.onload = function(e) {
+      var data = e.target.result;
+      var workbook = XLSX.read(data, {type: "binary"});
+
+      // Read "nodes" sheet
+      var nodesSheet = workbook.Sheets["nodes"];
+      if (!nodesSheet) {
+        console.error("No 'nodes' sheet found in the Excel file.");
+        return;
+      }
+      var nodesData = XLSX.utils.sheet_to_json(nodesSheet, {header: 1});
+      nodesData.shift(); // Remove header row
+
+      nodesData.forEach(function(row) {
+        if (row.every(cell => cell === undefined || cell === null || cell === '')) {
+          return; // Skip this row
+        }
+        var nodeId = row[0] ? row[0].replace(/\s+/g, '') : '';
+        var value = row[2] ? row[2] : '';
+        var color = row[1] ? row[1] : 'black';
+        var title = row[3] ? row[3] : '';
+        var group = row[4] ? row[4] : null; // Assuming group info is in the 5th column
+
+        if(group) {
+          groupFilters[group] = true; // Mark group as visible by default
+        }
+
+        var nodeOptions = {
+          id: nodeId,
+          label: row[0],
+          value: value,
+          color: color, // This is the color from Sheets data
+          title: title,
+          group: group,
+          hidden: group ? !groupFilters[group] : false,
+          originalColor: color, // Store the original color
+          font: { background: 'white', color: 'black' } // Set label background and text color
+        };
+
+        nodes.add(nodeOptions);
+      });
+
+      // Read "edges" sheet
+      var edgesSheet = workbook.Sheets["edges"];
+      if (!edgesSheet) {
+        console.error("No 'edges' sheet found in the Excel file.");
+        return;
+      }
+      var edgesData = XLSX.utils.sheet_to_json(edgesSheet, {header: 1});
+      edgesData.shift(); // Remove header row
+
+      edgesData.forEach(function(row) {
+        if (row.every(cell => cell === undefined || cell === null || cell === '')) {
+          return; // Skip empty rows
+        }
+
+        var color = "grey";
+        var dashes = false;
+        if (row[2] === "promotes") color = "green";
+        else if (row[2] === "inhibits") color = "red";
+        else if (row[2] === "link") {
+          color = "black";
+          dashes = true;
+        }
+
+        var title = row[4] ? row[4] : ''; // Comment from column E
+        var value = row[3] ? parseFloat(row[3]) : undefined; // Value from column D
+
+        // Define min and max values for thickness and length
+        var minThickness = 0.5;
+        var maxThickness = 10;
+        var minLength = 40;
+        var maxLength = 120;
+
+        // Normalize value for thickness and length
+        var thickness = value !== undefined ? Math.max(minThickness, minThickness + (value / 100) * (maxThickness - minThickness)) : minThickness;
+        var length = value !== undefined ? Math.max(minLength, maxLength - (value / 100) * (maxLength - minLength)) : minLength;
+
+        // Assuming row[0] and row[1] are the IDs for the source and target nodes
+        var fromNode = row[0].replace(/\s+/g, '');
+        var toNode = row[1].replace(/\s+/g, '');
+
+        edges.add({
+          from: fromNode,
+          to: toNode,
+          arrows: row[2] === "link" ? "" : "to",
+          color: color,
+          dashes: dashes,
+          title: title, // Add the comment as title
+          width: thickness, // Set the thickness directly
+          length: length,   // Set the length directly
+        });
+      });
+
+      // Update the network with new data
+      network.setData({nodes: nodes, edges: edges});
+
+      // Render group toggles only after updating data
+      renderGroupToggles();
+
+      // Stabilize the network to adjust the layout
+      network.stabilize();
+    };
+
+    reader.onerror = function(error) {
+      console.error("Error reading the Excel file:", error);
+    };
+
+    reader.readAsBinaryString(blob);
+  }
+
+  // Group filters and functions
+  var groupFilters = {};
+
+  function renderGroupToggles() {
+    var toggleContainer = document.getElementById("groupToggles");
+    toggleContainer.innerHTML = ""; // Clear previous toggles
+
+    Object.keys(groupFilters).forEach(function(group) {
+      var button = document.createElement("button");
+      button.innerText = group;
+      button.classList.add("group-toggle", "button");
+      button.onclick = function() {
+        // Toggle group visibility
+        groupFilters[group] = !groupFilters[group];
+        button.classList.toggle("off", !groupFilters[group]);
+        updateNetworkVisibility();
+      };
+
+      toggleContainer.appendChild(button);
+    });
+  }
+
+  function updateNetworkVisibility() {
+    nodes.forEach(function(node) {
+      var shouldBeHidden = node.group && !groupFilters[node.group];
+      nodes.update({
+        id: node.id,
+        hidden: shouldBeHidden,
+        color: node.originalColor // Use the original color stored for the node
+      });
+    });
+
+    edges.forEach(function(edge) {
+      var fromNode = nodes.get(edge.from);
+      var toNode = nodes.get(edge.to);
+      edges.update({
+        id: edge.id,
+        hidden: fromNode.hidden || toNode.hidden
+      });
+    });
+  }
+
+  // Fullscreen functions
+  function enterFullscreen(element) {
+    if (element.requestFullscreen) {
+      element.requestFullscreen();
+    } else if (element.mozRequestFullScreen) {
+      element.mozRequestFullScreen();
+    } else if (element.webkitRequestFullscreen) {
+      element.webkitRequestFullscreen();
+    } else if (element.msRequestFullscreen) {
+      element.msRequestFullscreen();
+    }
+  }
+
+  function exitFullscreen() {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
+
+  function isFullscreen() {
+    return !!(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+  }
+
+  // Event delegation for fullscreen buttons
+  document.addEventListener("click", function(event) {
+    if (event.target.classList.contains("toggleFullscreen")) {
+      var container = document.getElementById("mynetwork");
+      if (isFullscreen()) {
+        exitFullscreen();
+      } else {
+        enterFullscreen(container);
+      }
+    }
+  });
+
+  // Print page functionality (if needed)
+  document.querySelectorAll('.print-page').forEach(button => {
+    button.addEventListener('click', () => {
+      window.print();
+    });
+  });
       
 </script>
 </body>
