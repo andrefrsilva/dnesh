@@ -324,7 +324,7 @@
         <header>
             <h1>DNeSH</h1>
             <p>Diagnostic Network for Secondary Hypertension</p>
-            <p>v0.29</p>
+            <p>v0.28</p>
           <p><a href="https://forms.gle/11vqK1EhyQBbrBdt5" target="_blank">Sign Up</a> to Submit Clinical Cases</p>
           <p><a href="mailto:andrefrsilva@edu.ulisboa.pt">Contact Us</a></p>
         </header>
@@ -345,22 +345,22 @@
     <br /><br /><button class="toggleFullscreen">Fullscreen</button> 
 
     <br /><br />
-    <input type="checkbox" class="physicsCheck" checked> Physics<br><br>
+    <input type="checkbox" id="physicsCheck" checked> Physics<br><br>
 
     <!-- Labels without conflicting styles -->
     <label>
-      <input type="checkbox" class="seeAllDescendantsCheckbox" name="seeAllDescendants">
+      <input type="checkbox" id="seeAllDescendantsCheckbox" name="seeAllDescendants">
       See all affected Nodes when selecting One
     </label>
     <br><br>
 
     <label>
-      <input type="checkbox" class="curvedEdgesCheckbox"> Curved Edges
+      <input type="checkbox" id="curvedEdgesCheckbox"> Curved Edges
     </label>
     
     <br>
     <p>Groups:</p>
-    <div class="groupToggles"></div>
+    <div id="groupToggles"></div>
 
     <!-- Additional elements (hidden) -->
     <!-- ... -->
@@ -373,22 +373,22 @@
     <br /><br /><button class="toggleFullscreen">Fullscreen</button> 
 
     <br /><br />
-    <input type="checkbox" class="physicsCheck" checked> Physics<br><br>
+    <input type="checkbox" id="physicsCheck" checked> Physics<br><br>
 
     <!-- Labels without conflicting styles -->
     <label>
-      <input type="checkbox" class="seeAllDescendantsCheckbox" name="seeAllDescendants">
+      <input type="checkbox" id="seeAllDescendantsCheckbox" name="seeAllDescendants">
       See all affected Nodes when selecting One
     </label>
     <br><br>
 
     <label>
-      <input type="checkbox" class="curvedEdgesCheckbox"> Curved Edges
+      <input type="checkbox" id="curvedEdgesCheckbox"> Curved Edges
     </label>
     
     <br>
     <p>Groups:</p>
-    <div class="groupToggles"></div>
+    <div id="groupToggles"></div>
 
     <!-- Additional elements (hidden) -->
     <!-- ... -->
@@ -842,7 +842,410 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-  // Initialize global variables
+        // Load Excel file and initialize filters
+        const excelUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpHz_MgeygnnVAYUTlnq2wQJp8Owg1vurrWw1kmz3Up4kJK0KXWy4LKmml5jBj2XvwlKAB0ItSFFfr/pub?output=xlsx';
+        let patientData = [];
+        let ageHistogramChart;
+        let maleBarChart, countryBarChart;
+        let variablesList = [
+            'Male',
+            '<40 years old onset',
+            '>65 years old onset',
+            'Abrupt Onset',
+            'Treatment Resistant',
+            'Therapeutic Adherence',
+            'Left-Right Arm Diff >10',
+            'Arm-Leg Diff',
+            'Dyslipidemia',
+            'Diabetes',
+            'Stroke',
+            'Myocardial Infarction',
+            'Smokes or Smoked',
+            'Hypokalemia',
+            'Sleep Apnea',
+            'Family History of PHT',
+            'Family History of SHT',
+            'Obesity',
+            'High Cortisol',
+            'Pulmonary Edema',
+            'Abdominal bruit',
+            'High Serum Creatinine',
+            'Hematuria',
+            'Proteinuria',
+            'Family History of Polycystic Kidney Disease',
+            'Cramps',
+            'Headaches',
+            'Sweating',
+            'Palpitations',
+            'Tinnitus',
+            'Atrial Fibrillation',
+            'High Aldosterone/Renin Ratio',
+            'NSAIDs',
+            'Oral Contraceptives',
+            'Steroids',
+            'Sympathomimetic Agents',
+            'Caffeine',
+            'Nicotine'
+        ];
+
+        async function loadExcelData() {
+            const response = await fetch(excelUrl);
+            const data = await response.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            patientData = XLSX.utils.sheet_to_json(firstSheet);
+
+            populateFilters();
+            updateResults();
+        }
+
+        // Populate dropdown filters with unique values
+        function populateFilters() {
+            populateDropdown('Country', 'countryFilter');
+            populateDropdown('Primary Cause', 'primaryCauseFilter');
+        }
+
+        // Populate a dropdown with unique values from a column, filtering out empty or space-only values
+        function populateDropdown(column, dropdownId) {
+            const values = [...new Set(patientData.map(item => item[column]?.toString().trim()))]
+                .filter(value => value && value.trim() !== ''); // Remove empty or space-only values
+            const dropdown = document.getElementById(dropdownId);
+            values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                dropdown.appendChild(option);
+            });
+        }
+
+        // Helper function to parse and clean the value
+        function getValue(patient, key) {
+            let value = patient[key];
+            if (typeof value === 'string') {
+                value = value.trim().toLowerCase();
+                if (value === 'yes') return 1;
+                if (value === 'no') return 0;
+            }
+            return parseFloat(value) || 0; // Convert to a number, defaulting to 0 if not a valid number
+        }
+
+        // Update the participant count and male distribution
+        function updateParticipantCount(filteredPatients) {
+            const total = filteredPatients.length;
+            const maleCount = filteredPatients.filter(p => getValue(p, 'Male') === 1).length;
+            const femaleCount = total - maleCount;
+            document.getElementById('participantCount').textContent = `(${total}: ${maleCount} males and ${femaleCount} females)`;
+        }
+
+        function createAgeHistogram(filteredPatients) {
+            // Create bins for 10-year intervals
+            const ageBins = Array.from({ length: 10 }, (_, i) => ({
+                label: `${i * 10}-${i * 10 + 9}`,
+                count: 0
+            }));
+
+            // Populate the age bins with data
+            filteredPatients.forEach(p => {
+                const age = getValue(p, 'Age');
+                const binIndex = Math.floor(age / 10);
+                if (binIndex >= 0 && binIndex < ageBins.length) {
+                    ageBins[binIndex].count++;
+                }
+            });
+
+            // Prepare data for the chart
+            const labels = ageBins.map(bin => bin.label);
+            const data = ageBins.map(bin => bin.count);
+
+            // If the chart already exists, destroy it before creating a new one
+            if (ageHistogramChart) {
+                ageHistogramChart.destroy();
+            }
+
+            const ctx = document.getElementById('ageHistogram').getContext('2d');
+            ageHistogramChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Participant Ages',
+                        data: data,
+                        backgroundColor: '#4A90E2',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Age Distribution'
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Age' } },
+                        y: { title: { display: true, text: 'Number of Participants' } }
+                    }
+                }
+            });
+        }
+
+        // Function to create a bar chart for the number of participants by Male
+function createMaleBarChart(filteredPatients) {
+            const maleCounts = filteredPatients.reduce((acc, patient) => {
+                const maleValue = getValue(patient, 'Male');
+                const key = maleValue === 1 ? 'Male' : 'Female';
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {});
+
+            const labels = Object.keys(maleCounts);
+            const data = Object.values(maleCounts);
+
+            if (maleBarChart) {
+                maleBarChart.destroy();
+            }
+
+            const ctx = document.getElementById('maleBarChart').getContext('2d');
+            maleBarChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Number of Participants by Sex',
+                        data: data,
+                        backgroundColor: ['#4A90E2', '#FF00FF'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Number of Participants by Sex'
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Sex' } },
+                        y: {
+                            title: { display: true, text: 'Number of Participants' },
+                            beginAtZero: true, // Ensure y-axis starts at zero
+                            suggestedMax: Math.max(...data) * 1.1 // Add 10% padding above the max value
+                        }
+                    }
+                }
+            });
+        }
+
+        // Function to create a bar chart for the number of participants by Country
+        function createCountryBarChart(filteredPatients) {
+            const countryCounts = filteredPatients.reduce((acc, patient) => {
+                const country = patient['Country'] || 'Unknown';
+                acc[country] = (acc[country] || 0) + 1;
+                return acc;
+            }, {});
+
+            const labels = Object.keys(countryCounts);
+            const data = Object.values(countryCounts);
+
+            if (countryBarChart) {
+                countryBarChart.destroy();
+            }
+
+            const ctx = document.getElementById('countryBarChart').getContext('2d');
+            countryBarChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Number of Participants by Country',
+                        data: data,
+                        backgroundColor: '#3498DB',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Number of Participants by Country'
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Country' } },
+                        y: { title: { display: true, text: 'Number of Participants' } }
+                    }
+                }
+            });
+        }
+
+        // Function to calculate and display the distribution of Primary Causes
+        function updatePrimaryCauseTable(filteredPatients) {
+            const causeCounts = filteredPatients.reduce((acc, patient) => {
+                const cause = patient['Primary Cause'] || 'Unknown';
+                acc[cause] = (acc[cause] || 0) + 1;
+                return acc;
+            }, {});
+
+            const total = filteredPatients.length;
+            const causePercentages = Object.entries(causeCounts).map(([cause, count]) => ({
+                cause,
+                percentage: ((count / total) * 100).toFixed(1)
+            }));
+
+            // Sort from biggest to smallest
+            causePercentages.sort((a, b) => b.percentage - a.percentage);
+
+            const primaryCauseTableBody = document.querySelector('#primaryCauseTable tbody');
+            primaryCauseTableBody.innerHTML = causePercentages.map(item => {
+                const color = getColorForPercentage(item.percentage);
+                return `
+                    <tr>
+                        <td style="text-align: center;">${item.cause}</td>
+                        <td style="background-color: ${color}; text-align: center;">${item.percentage}%</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Color coding function for percentages
+        function getColorForPercentage(value) {
+            const percentage = parseFloat(value);
+            const ratioPercent = Math.min(percentage / 100, 1);
+
+            const red = 255;
+            const green = Math.floor(255 * (1 - ratioPercent));
+
+            return `rgb(${red}, ${green}, 0)`;
+        }
+
+        // Function to calculate odds ratio between each variable and the outcome "Secondary Hypertension"
+        function calculateOddsRatio(filteredPatients) {
+            // Function to calculate odds ratio
+            function computeOddsRatio(a, b, c, d) {
+                if (b === 0 || c === 0) return 'N/A';
+                return (a / b) / (c / d);
+            }
+
+            // Calculate odds ratio for each variable
+            const oddsRatios = variablesList.map(variable => {
+                let a = 0, b = 0, c = 0, d = 0;
+
+                filteredPatients.forEach(patient => {
+                    const outcome = getValue(patient, 'Secondary Hypertension');
+                    const exposure = getValue(patient, variable);
+
+                    if (exposure && outcome) a++;
+                    else if (exposure && !outcome) b++;
+                    else if (!exposure && outcome) c++;
+                    else d++;
+                });
+
+                const oddsRatio = computeOddsRatio(a, b, c, d);
+                return { name: variable, value: isFinite(oddsRatio) ? oddsRatio.toFixed(1) : 'N/A' };
+            });
+
+            // Sort the odds ratios by value in descending order and filter out "N/A"
+            const validOddsRatios = oddsRatios
+                .filter(or => or.value !== 'N/A')
+                .sort((a, b) => parseFloat(b.value) - parseFloat(a.value));
+
+            const oddsRatioTableBody = document.querySelector('#oddsRatioTable tbody');
+            oddsRatioTableBody.innerHTML = validOddsRatios.map(or => {
+                const color = getColorForOddsRatio(or.value);
+                return `
+                    <tr>
+                        <td style="text-align: center;">${or.name}</td>
+                        <td style="background-color: ${color}; text-align: center;">${or.value}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Color coding function for odds ratios
+        function getColorForOddsRatio(value) {
+            if (value === 'N/A') return '#ffffff'; // No color for N/A values
+            const ratio = parseFloat(value);
+            const minRatio = 1;
+            const maxRatio = 6;
+
+            const ratioPercent = Math.min((ratio - minRatio) / (maxRatio - minRatio), 1);
+
+            const red = 255;
+            const green = Math.floor(255 * (1 - ratioPercent));
+
+            return `rgb(${red}, ${green}, 0)`;
+        }
+
+    function updateResults() {
+        const countryFilter = document.getElementById('countryFilter').value;
+        const primaryCauseFilter = document.getElementById('primaryCauseFilter').value;
+        const binaryFilters = {};
+
+        variablesList.forEach(variable => {
+            const value = document.querySelector(`select[name="${variable}"]`).value;
+            binaryFilters[variable] = value;
+        });
+
+        // Filter patient data based on dropdowns and binary filters
+        const filteredPatients = patientData.filter(patient => {
+            const countryMatch = (countryFilter === 'All' || patient['Country'] === countryFilter);
+            const causeMatch = (primaryCauseFilter === 'All' || patient['Primary Cause'] === primaryCauseFilter);
+
+            const binaryMatch = Object.entries(binaryFilters).every(([key, value]) => {
+                const patientValue = getValue(patient, key);
+                if (value === 'All') return true;  // No filtering
+                if (value === '1') return patientValue === 1;
+                if (value === '0') return patientValue === 0;
+                return false;  // Default return false for safety
+            });
+
+            return countryMatch && causeMatch && binaryMatch;
+        });
+
+        // Update participant count and create charts
+        updateParticipantCount(filteredPatients);
+        createAgeHistogram(filteredPatients);
+        createMaleBarChart(filteredPatients);
+        createCountryBarChart(filteredPatients);
+        updatePrimaryCauseTable(filteredPatients);
+        calculateOddsRatio(filteredPatients);
+
+        // Calculate percentage of Secondary Hypertension cases
+        const secondaryCount = filteredPatients.filter(p => getValue(p, 'Secondary Hypertension') === 1).length;
+        const percentage = filteredPatients.length ? (secondaryCount / filteredPatients.length) * 100 : 0;
+        document.getElementById('secondaryHypertensionPercentage').textContent = `${percentage.toFixed(1)}%`;
+
+        // Sort and display the filtered data
+        filteredPatients.sort((a, b) => getValue(b, 'Secondary Hypertension') - getValue(a, 'Secondary Hypertension'));
+        const patientTableBody = document.querySelector('#patientTable tbody');
+        patientTableBody.innerHTML = filteredPatients.map(patient => {
+            const rowClass = getValue(patient, 'Secondary Hypertension') === 1 ? 'secondary-hypertension' : 'primary-hypertension';
+            const rowCells = ['Age', 'Country', 'Primary Cause', 'Male', ...variablesList.slice(1)].map(key => `<td>${patient[key] || ''}</td>`).join('');
+            return `<tr class="${rowClass}">${rowCells}</tr>`;
+        }).join('');
+    }
+
+    // Load the Excel data on page load
+    window.onload = loadExcelData;
+
+    // Add event listeners to filters
+    document.querySelectorAll('.binary-select').forEach(select => {
+        select.addEventListener('change', updateResults);
+    });
+    document.getElementById('countryFilter').addEventListener('change', updateResults);
+    document.getElementById('primaryCauseFilter').addEventListener('change', updateResults);
+
+      // Add event listener for the download button
+document.getElementById('downloadButton').addEventListener('click', function() {
+    window.open(excelUrl, '_blank');
+});
+
+
+           // Initialize global variables
   var nodes = new vis.DataSet([]);
   var edges = new vis.DataSet([]);
   var network = null;
@@ -851,10 +1254,6 @@
   const boxes = document.querySelectorAll('.drug-box');
   const sections = document.querySelectorAll('.info-section');  
   const networkContainer = document.getElementById('mynetwork');
-
-  // Global variables
-  let seeAllDescendants = true;
-  let groupTogglesContainer; // Declare globally
 
   // Smooth scroll function
   function smoothScroll(target, duration) {
@@ -946,63 +1345,67 @@
         const id = box.getAttribute('data-id');
         const section = document.getElementById(`section-${id}`);
 
-        // Close all other sections
-        sections.forEach(sec => {
-          if (sec !== section) {
-            sec.style.display = 'none';
-          }
-        });
+        if (section.style.display === 'block') {
+          // Section is open, close it
+          section.style.display = 'none';
 
-        section.style.display = 'block';
-
-        // Move the network container into the current section
-        const h1 = section.querySelector('h1');
-        if (h1) {
-          h1.insertAdjacentElement('afterend', networkContainer);
+          // Optionally hide the network container
+          // networkContainer.style.display = 'none';
         } else {
-          section.insertAdjacentElement('afterbegin', networkContainer);
+          // Section is closed, open it
+
+          // Close all other sections
+          sections.forEach(sec => {
+            if (sec !== section) {
+              sec.style.display = 'none';
+            }
+          });
+
+          section.style.display = 'block';
+
+          // Move the network container into the current section, after the main title
+          const h1 = section.querySelector('h1');
+          if (h1) {
+            h1.insertAdjacentElement('afterend', networkContainer);
+          } else {
+            section.insertAdjacentElement('afterbegin', networkContainer);
+          }
+
+          // Ensure the network container is visible
+          networkContainer.style.display = 'block';
+
+          // Smooth scroll to the section
+          smoothScroll(section, 1300);
+
+          // Load the data for this section
+          loadDataForSection(id);
         }
-
-        // Ensure the network container is visible
-        networkContainer.style.display = 'block';
-
-        // Smooth scroll to the section
-        smoothScroll(section, 1300);
-
-        // Set up event listeners for controls in this section
-        const physicsCheck = section.querySelector('.physicsCheck');
-        const seeAllDescendantsCheckbox = section.querySelector('.seeAllDescendantsCheckbox');
-        const curvedEdgesCheckbox = section.querySelector('.curvedEdgesCheckbox');
-        groupTogglesContainer = section.querySelector('.groupToggles');
-
-        // Update options based on the current controls
-        options.physics.enabled = physicsCheck.checked;
-        options.edges.smooth.enabled = curvedEdgesCheckbox.checked;
-        network.setOptions(options);
-
-        physicsCheck.addEventListener('change', function() {
-          options.physics.enabled = this.checked;
-          network.setOptions(options);
-          network.redraw();
-        });
-
-        seeAllDescendantsCheckbox.addEventListener('change', function() {
-          seeAllDescendants = this.checked;
-        });
-
-        curvedEdgesCheckbox.addEventListener('change', function() {
-          options.edges.smooth.enabled = this.checked;
-          network.setOptions(options);
-          network.redraw();
-        });
-
-        // Load the data for this section
-        loadDataForSection(id);
       });
     });
 
-    // Modify the network event handlers to use the global variable
+    // Event listener for physics checkbox
+    document.getElementById("physicsCheck").addEventListener("change", function() {
+      options.physics.enabled = this.checked; // Toggle physics
+      network.setOptions(options); // Update network options
+      network.redraw(); // Redraw network
+    });
+
+    // Event listener for curved edges
+    document.getElementById("curvedEdgesCheckbox").addEventListener("change", function () {
+      options.edges.smooth.enabled = this.checked;
+      network.setOptions(options);
+      network.redraw();
+    });
+
+    // Add the watermark
+    var watermark = document.createElement('div');
+    watermark.id = 'watermark';
+    watermark.innerHTML = `<a href="https://www.linkedin.com/in/andrefrsilva/" target="_blank">DNeSH © ${new Date().getFullYear()}</a>`;
+    networkContainer.appendChild(watermark);
+
+    // Add event handlers for node selection
     network.on('selectNode', function (properties) {
+      let seeAllDescendants = document.getElementById('seeAllDescendantsCheckbox').checked;
       let nodesToUpdate = [];
       let allNodes = nodes.get(); // Get all nodes
 
@@ -1028,12 +1431,13 @@
             childNode.hidden = false;
             childNode.color = nodes.get(childId).originalColor;
             if (recursive) {
-              addChildNodes(childId, nodesMap, seeAllDescendants);
+              addChildNodes(childId, nodesMap, seeAllDescendants); // Use the checkbox value
             }
           }
         });
       };
 
+      // Apply recursion based on user preference
       properties.nodes.forEach(nodeId => {
         addChildNodes(nodeId, nodesToUpdate, seeAllDescendants);
       });
@@ -1047,20 +1451,16 @@
 
       allNodes.forEach(node => {
         if (node.hidden) {
+          // Make the node visible and restore its original color
           nodesToUpdate.push({ id: node.id, hidden: false, color: node.originalColor });
         } else {
+          // Ensure visible nodes have their original color
           nodesToUpdate.push({ id: node.id, color: node.originalColor });
         }
       });
 
       nodes.update(nodesToUpdate);
     });
-
-    // Add the watermark
-    var watermark = document.createElement('div');
-    watermark.id = 'watermark';
-    watermark.innerHTML = `<a href="https://www.linkedin.com/in/andrefrsilva/" target="_blank">DNeSH © ${new Date().getFullYear()}</a>`;
-    networkContainer.appendChild(watermark);
   });
 
   function loadDataForSection(id) {
@@ -1189,8 +1589,8 @@
       // Update the network with new data
       network.setData({nodes: nodes, edges: edges});
 
-      // Render group toggles in the current section
-      renderGroupToggles(groupTogglesContainer);
+      // Render group toggles only after updating data
+      renderGroupToggles();
 
       // Stabilize the network to adjust the layout
       network.stabilize();
@@ -1206,8 +1606,9 @@
   // Group filters and functions
   var groupFilters = {};
 
-  function renderGroupToggles(container) {
-    container.innerHTML = ""; // Clear previous toggles
+  function renderGroupToggles() {
+    var toggleContainer = document.getElementById("groupToggles");
+    toggleContainer.innerHTML = ""; // Clear previous toggles
 
     Object.keys(groupFilters).forEach(function(group) {
       var button = document.createElement("button");
@@ -1220,7 +1621,7 @@
         updateNetworkVisibility();
       };
 
-      container.appendChild(button);
+      toggleContainer.appendChild(button);
     });
   }
 
@@ -1296,6 +1697,6 @@
       window.print();
     });
   });
+      
 </script>
-
 </body>
