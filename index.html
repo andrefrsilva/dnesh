@@ -1374,28 +1374,44 @@ document.getElementById('downloadButton').addEventListener('click', function() {
           // Ensure the network container is visible
           networkContainer.style.display = 'block';
 
-          // Smooth scroll to the section
-          smoothScroll(section, 1300);
+         // Smooth scroll to the section
+      smoothScroll(section, 1300);
 
-          // Load the data for this section
-          loadDataForSection(id);
-        }
-      });
-    });
+      // Load the data for this section
+      loadDataForSection(id);
 
-    // Event listener for physics checkbox
-    document.getElementById("physicsCheck").addEventListener("change", function() {
-      options.physics.enabled = this.checked; // Toggle physics
-      network.setOptions(options); // Update network options
-      network.redraw(); // Redraw network
-    });
+      // Set up event listeners for controls in this section
+      const physicsCheck = section.querySelector('.physicsCheck');
+      const seeAllDescendantsCheckbox = section.querySelector('.seeAllDescendantsCheckbox');
+      const curvedEdgesCheckbox = section.querySelector('.curvedEdgesCheckbox');
+      const groupTogglesContainer = section.querySelector('.groupToggles');
 
-    // Event listener for curved edges
-    document.getElementById("curvedEdgesCheckbox").addEventListener("change", function () {
-      options.edges.smooth.enabled = this.checked;
+      // Update options based on the current controls
+      options.physics.enabled = physicsCheck.checked;
+      options.edges.smooth.enabled = curvedEdgesCheckbox.checked;
       network.setOptions(options);
-      network.redraw();
+
+      physicsCheck.addEventListener('change', function() {
+        options.physics.enabled = this.checked;
+        network.setOptions(options);
+        network.redraw();
+      });
+
+      seeAllDescendantsCheckbox.addEventListener('change', function() {
+        seeAllDescendants = this.checked;
+      });
+
+      curvedEdgesCheckbox.addEventListener('change', function() {
+        options.edges.smooth.enabled = this.checked;
+        network.setOptions(options);
+        network.redraw();
+      });
+
+      // Render group toggles in the current section
+      renderGroupToggles(groupTogglesContainer);
     });
+  });
+
 
     // Add the watermark
     var watermark = document.createElement('div');
@@ -1405,7 +1421,7 @@ document.getElementById('downloadButton').addEventListener('click', function() {
 
     // Add event handlers for node selection
     network.on('selectNode', function (properties) {
-      let seeAllDescendants = document.getElementById('seeAllDescendantsCheckbox').checked;
+     let seeAllDescendants = true;
       let nodesToUpdate = [];
       let allNodes = nodes.get(); // Get all nodes
 
@@ -1606,24 +1622,23 @@ document.getElementById('downloadButton').addEventListener('click', function() {
   // Group filters and functions
   var groupFilters = {};
 
-  function renderGroupToggles() {
-    var toggleContainer = document.getElementById("groupToggles");
-    toggleContainer.innerHTML = ""; // Clear previous toggles
+function renderGroupToggles(container) {
+  container.innerHTML = ""; // Clear previous toggles
 
-    Object.keys(groupFilters).forEach(function(group) {
-      var button = document.createElement("button");
-      button.innerText = group;
-      button.classList.add("group-toggle", "button");
-      button.onclick = function() {
-        // Toggle group visibility
-        groupFilters[group] = !groupFilters[group];
-        button.classList.toggle("off", !groupFilters[group]);
-        updateNetworkVisibility();
-      };
+  Object.keys(groupFilters).forEach(function(group) {
+    var button = document.createElement("button");
+    button.innerText = group;
+    button.classList.add("group-toggle", "button");
+    button.onclick = function() {
+      // Toggle group visibility
+      groupFilters[group] = !groupFilters[group];
+      button.classList.toggle("off", !groupFilters[group]);
+      updateNetworkVisibility();
+    };
 
-      toggleContainer.appendChild(button);
-    });
-  }
+    container.appendChild(button);
+  });
+}
 
   function updateNetworkVisibility() {
     nodes.forEach(function(node) {
